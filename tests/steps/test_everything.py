@@ -1,4 +1,4 @@
-from pytest_bdd import when, then, scenarios
+from pytest_bdd import given, when, then, scenarios
 from kubernetes import config
 import uuid
 import pytest
@@ -16,7 +16,7 @@ scenarios('../features/virtual_machine.feature')
 
 config.load_kube_config()
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def project():
     project_name = f"phoracek-test-project-{uuid.uuid4()}"
     project_request = ProjectRequest(name=project_name)
@@ -29,7 +29,7 @@ def create_project(project):
 
 @pytest.fixture
 def pod(project):
-    pod_name = "test-pod"
+    pod_name = f"pod-{uuid.uuid4()}"
     return Pod(
         name=pod_name,
         namespace=project,
@@ -52,7 +52,7 @@ def verify_pod_running(pod):
 
 @pytest.fixture
 def virtual_machine(project):
-    vm_name = "test-vm"
+    vm_name = f"vm-{uuid.uuid4()}"
     vm = VirtualMachine(
         name=vm_name,
         namespace=project,
@@ -91,6 +91,53 @@ def verify_virtual_machine_console(virtual_machine):
     with Console(vm=virtual_machine) as vmc:
         vmc.sendline('hostname')
         vmc.expect('cirros')
+
+@given('Two VirtualMachines connected to the Pod network', target_fixture="vms")
+def given_vms(project):
+    body = {
+        "spec": {
+            "runStrategy": "Always",
+            "template": {
+                "spec": {
+                    "domain": {
+                        "devices": {
+                            "disks": [{"name": "disk0", "disk": {"bus": "virtio"}}],
+                            "interfaces": [{"name": "default", "masquerade": {}}],
+                        },
+                        "resources": {"requests": {"memory": "64Mi"}},
+                    },
+                    "networks": [{"name": "default", "pod": {}}],
+                    "volumes": [{"name": "disk0", "containerDisk": {"image": "kubevirt/cirros-container-disk-demo"}}]
+                }
+            }
+        }
+    }
+    vm_a = VirtualMachine(
+        name=f"vm-a-{uuid.uuid4()}",
+        namespace=project,
+        body=body,
+    )
+    vm_b = VirtualMachine(
+        name=f"vm-b-{uuid.uuid4()}",
+        namespace=project,
+        body=body,
+    )
+    vm_a.create()
+    vm_b.create()
+    vm_a.vmi.wait_until_running(timeout=180)
+    vm_b.vmi.wait_until_running(timeout=180)
+    return vm_a, vm_b
+
+@then('there must be connectivity between the two')
+def verify_no_packet_loss(vms):
+    vm_a, vm_b = vms
+
+    vm_a_ip = vm_a.vmi.interfaces[0].ipAddress
+    vm_b_ip = vm_b.vmi.interfaces[0].ipAddress
+
+    with Console(vm=vm_a) as vm_a_console:
+        vm_a_console.sendline(f"ping -c 10 {vm_b_ip}")
+        vm_a_console.expect("0% packet loss")
 
 class Console(object):
     def __init__(self, vm):
