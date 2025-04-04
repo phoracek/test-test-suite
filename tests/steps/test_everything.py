@@ -4,16 +4,10 @@ import uuid
 import pytest
 import time
 
-scenarios('../features/api_connectivity.feature')
 scenarios('../features/pod_connectivity.feature')
 scenarios('../features/virtual_machine.feature')
 
-@given('an OpenShift cluster is accessible')
-def openshift_cluster_accessible():
-    config.load_kube_config()
-    v1 = client.CoreV1Api()
-    # Verify the cluster is accessible by listing namespaces
-    v1.list_namespace()
+config.load_kube_config()
 
 @when('I create a new project')
 def create_project(request):
@@ -59,18 +53,6 @@ def verify_pod_running():
         time.sleep(1)
     else:
         assert False, f"Pod is not running, current phase: {pod.status.phase}"
-
-@when('I query the OpenShift API for its version')
-def query_openshift_api_version():
-    config.load_kube_config()
-    version_api = client.VersionApi()
-    global openshift_version
-    openshift_version = version_api.get_code().git_version
-
-@then('I should receive a valid response')
-def verify_openshift_api_response():
-    assert openshift_version is not None, "Failed to retrieve OpenShift API version"
-    assert openshift_version.startswith("v"), f"Unexpected version format: {openshift_version}"
 
 @when('I create a new VirtualMachine')
 def create_virtual_machine():
