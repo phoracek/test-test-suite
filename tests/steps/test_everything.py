@@ -5,6 +5,7 @@ import pytest
 import time
 from ocp_resources.pod import Pod
 from ocp_resources.virtual_machine import VirtualMachine
+from ocp_resources.project_request import ProjectRequest
 
 scenarios('../features/pod_connectivity.feature')
 scenarios('../features/virtual_machine.feature')
@@ -14,18 +15,8 @@ config.load_kube_config()
 @pytest.fixture
 def project():
     project_name = f"phoracek-test-project-{uuid.uuid4()}"
-    project_api = client.CustomObjectsApi()
-    project_body = {
-        "apiVersion": "project.openshift.io/v1",
-        "kind": "ProjectRequest",
-        "metadata": {"name": project_name}
-    }
-    project_api.create_cluster_custom_object(
-        group="project.openshift.io",
-        version="v1",
-        plural="projectrequests",
-        body=project_body
-    )
+    project_request = ProjectRequest(name=project_name)
+    project_request.create()
     return project_name
 
 @when('I create a new project')
