@@ -19,7 +19,7 @@ This project contains a test suite using `pytest-bdd` for behavior-driven develo
 
 2. Run the test suite with a kubeconfig:
    ```bash
-   podman run --rm -it -v /path/to/kubeconfig:/root/.kube/config:ro -e KUBECONFIG=/root/.kube/config turnip-test-suite
+   podman run --rm -it -v ~/.kube/config:/root/.kube/config:z -e KUBECONFIG=/root/.kube/config turnip-test-suite
    ```
 
 ## Requirements
