@@ -22,18 +22,6 @@ This project contains a test suite using `pytest-bdd` for behavior-driven develo
    podman run --rm -it -v /path/to/kubeconfig:/root/.kube/config:ro -e KUBECONFIG=/root/.kube/config turnip-test-suite
    ```
 
-### Without Containers
-
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. Run the tests with a kubeconfig:
-   ```bash
-   KUBECONFIG=/path/to/kubeconfig pytest tests
-   ```
-
 ## Requirements
 
 - Python 3.10 or higher
