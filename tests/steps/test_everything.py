@@ -3,6 +3,7 @@ from kubernetes import client, config
 import uuid
 import pytest
 import time
+from ocp_resources.pod import Pod
 
 scenarios('../features/pod_connectivity.feature')
 scenarios('../features/virtual_machine.feature')
@@ -28,31 +29,25 @@ def create_project(request):
 
 @when('I create a pod in the project')
 def create_pod():
-    v1 = client.CoreV1Api()
-    pod = client.V1Pod(
-        metadata=client.V1ObjectMeta(name="test-pod"),
-        spec=client.V1PodSpec(
-            containers=[
-                client.V1Container(
-                    name="test-container",
-                    image="quay.io/phoracek/iptoolbox:latest",
-                    command=["/bin/sh", "-c", "sleep infinity"],
-                )
-            ]
-        )
+    global pod_name
+    pod_name = "test-pod"
+    pod = Pod(
+        name=pod_name,
+        namespace=project_name,
+        containers=[
+            {
+                "name": "test-container",
+                "image": "quay.io/phoracek/iptoolbox:latest",
+                "command": ["/bin/sh", "-c", "sleep infinity"],
+            }
+        ],
     )
-    v1.create_namespaced_pod(namespace=project_name, body=pod)
+    pod.create()
 
 @then('the pod should be running')
 def verify_pod_running():
-    v1 = client.CoreV1Api()
-    for _ in range(30):  # Retry for up to 30 seconds
-        pod = v1.read_namespaced_pod(name="test-pod", namespace=project_name)
-        if pod.status.phase == "Running":
-            break
-        time.sleep(1)
-    else:
-        assert False, f"Pod is not running, current phase: {pod.status.phase}"
+    pod = Pod(name=pod_name, namespace=project_name)
+    pod.wait_for_status(status="Running", timeout=30, sleep=1)
 
 @when('I create a new VirtualMachine')
 def create_virtual_machine():
