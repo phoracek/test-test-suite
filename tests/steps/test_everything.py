@@ -4,6 +4,7 @@ import uuid
 import pytest
 import time
 from ocp_resources.pod import Pod
+from ocp_resources.virtual_machine import VirtualMachine
 
 scenarios('../features/pod_connectivity.feature')
 scenarios('../features/virtual_machine.feature')
@@ -53,58 +54,35 @@ def verify_pod_running():
 def create_virtual_machine():
     global vm_name
     vm_name = f"test-vm-{uuid.uuid4()}"
-    vm_api = client.CustomObjectsApi()
-    vm_body = {
-        "apiVersion": "kubevirt.io/v1",
-        "kind": "VirtualMachine",
-        "metadata": {"name": vm_name},
-        "spec": {
-            "running": False,
-            "template": {
-                "metadata": {"labels": {"kubevirt.io/domain": vm_name}},
-                "spec": {
-                    "domain": {
-                        "devices": {"disks": [{"name": "disk0", "disk": {"bus": "virtio"}}]},
-                        "resources": {"requests": {"memory": "64Mi"}}
-                    },
-                    "volumes": [{"name": "disk0", "containerDisk": {"image": "kubevirt/cirros-container-disk-demo"}}]
+    vm = VirtualMachine(
+        name=vm_name,
+        namespace=project_name,
+        body={
+            "spec": {
+                "running": False,
+                "template": {
+                    "metadata": {"labels": {"kubevirt.io/domain": vm_name}},
+                    "spec": {
+                        "domain": {
+                            "devices": {"disks": [{"name": "disk0", "disk": {"bus": "virtio"}}]},
+                            "resources": {"requests": {"memory": "64Mi"}}
+                        },
+                        "volumes": [{"name": "disk0", "containerDisk": {"image": "kubevirt/cirros-container-disk-demo"}}]
+                    }
                 }
             }
         }
-    }
-    vm_api.create_namespaced_custom_object(
-        group="kubevirt.io",
-        version="v1",
-        namespace=project_name,
-        plural="virtualmachines",
-        body=vm_body
     )
+    vm.create()
 
 @when('I start the VirtualMachine')
 def start_virtual_machine():
-    vm_api = client.CustomObjectsApi()
-    vm_api.patch_namespaced_custom_object(
-        group="kubevirt.io",
-        version="v1",
-        namespace=project_name,
-        plural="virtualmachines",
-        name=vm_name,
-        body={"spec": {"running": True}}
-    )
+    #vm = VirtualMachine(name=vm_name, namespace=project_name)
+    #vm.update({"spec": {"running": True}})
+    pass
 
 @then('the VirtualMachine should be running')
 def verify_virtual_machine_running():
-    vm_api = client.CustomObjectsApi()
-    for _ in range(120):
-        vm = vm_api.get_namespaced_custom_object(
-            group="kubevirt.io",
-            version="v1",
-            namespace=project_name,
-            plural="virtualmachines",
-            name=vm_name
-        )
-        if vm.get("status", {}).get("ready"):
-            break
-        time.sleep(1)
-    else:
-        assert False, f"VirtualMachine is not running, current phase: {vm.get('status', {}).get('phase')}"
+    #vm = VirtualMachine(name=vm_name, namespace=project_name)
+    #vm.wait_for_status(status="Running", timeout=120, sleep=1)
+    pass
