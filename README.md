@@ -1,4 +1,4 @@
-# Turnip Test Suite
+# Test Suite
 
 This project contains a test suite using `pytest-bdd` for behavior-driven development (BDD).
 
@@ -14,16 +14,14 @@ This project contains a test suite using `pytest-bdd` for behavior-driven develo
 
 1. Build the container image:
    ```bash
-   podman build -t turnip-test-suite .
+   podman build -t test-suite .
    ```
 
 2. Run the test suite with a kubeconfig:
    ```bash
-   podman run --rm -it -v ~/.kube/config:/root/.kube/config:z -e KUBECONFIG=/root/.kube/config turnip-test-suite
+   podman run --rm -it -v ~/.kube/config:/root/.kube/config:z -e KUBECONFIG=/root/.kube/config test-suite
    ```
 
 ## Requirements
 
-- Python 3.10 or higher
-- `pytest` and `pytest-bdd`
-- Podman (optional, for containerized execution)
+- Podman
