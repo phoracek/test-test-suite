@@ -11,9 +11,8 @@ scenarios('../features/virtual_machine.feature')
 
 config.load_kube_config()
 
-@when('I create a new project')
-def create_project(request):
-    global project_name
+@pytest.fixture
+def project():
     project_name = f"phoracek-test-project-{uuid.uuid4()}"
     project_api = client.CustomObjectsApi()
     project_body = {
@@ -27,14 +26,18 @@ def create_project(request):
         plural="projectrequests",
         body=project_body
     )
+    return project_name
 
-@when('I create a pod in the project')
-def create_pod():
-    global pod_name
+@when('I create a new project')
+def create_project(project):
+    pass
+
+@pytest.fixture
+def pod(project):
     pod_name = "test-pod"
-    pod = Pod(
+    return Pod(
         name=pod_name,
-        namespace=project_name,
+        namespace=project,
         containers=[
             {
                 "name": "test-container",
@@ -43,23 +46,24 @@ def create_pod():
             }
         ],
     )
+
+@when('I create a pod in the project')
+def create_pod(pod):
     pod.create()
 
 @then('the pod should be running')
-def verify_pod_running():
-    pod = Pod(name=pod_name, namespace=project_name)
-    pod.wait_for_status(status="Running", timeout=30, sleep=1)
+def verify_pod_running(pod):
+    pod.wait_for_status(status="Running", timeout=30)
 
-@when('I create a new VirtualMachine')
-def create_virtual_machine():
-    global vm_name
-    vm_name = f"test-vm-{uuid.uuid4()}"
+@pytest.fixture
+def virtual_machine(project):
+    vm_name = "test-vm"
     vm = VirtualMachine(
         name=vm_name,
-        namespace=project_name,
+        namespace=project,
         body={
             "spec": {
-                "running": False,
+                "runStrategy": "Halted",
                 "template": {
                     "metadata": {"labels": {"kubevirt.io/domain": vm_name}},
                     "spec": {
@@ -73,16 +77,16 @@ def create_virtual_machine():
             }
         }
     )
-    vm.create()
+    return vm
+
+@when('I create a new VirtualMachine')
+def create_virtual_machine(virtual_machine):
+    virtual_machine.create()
 
 @when('I start the VirtualMachine')
-def start_virtual_machine():
-    #vm = VirtualMachine(name=vm_name, namespace=project_name)
-    #vm.update({"spec": {"running": True}})
-    pass
+def start_virtual_machine(virtual_machine):
+    virtual_machine.start()
 
 @then('the VirtualMachine should be running')
-def verify_virtual_machine_running():
-    #vm = VirtualMachine(name=vm_name, namespace=project_name)
-    #vm.wait_for_status(status="Running", timeout=120, sleep=1)
-    pass
+def verify_virtual_machine_running(virtual_machine):
+    virtual_machine.vmi.wait_until_running(timeout=180)
