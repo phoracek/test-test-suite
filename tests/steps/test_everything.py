@@ -11,10 +11,11 @@ from timeout_sampler import TimeoutSampler
 
 LOGGER = logging.getLogger(__name__)
 
-scenarios('../features/pod_connectivity.feature')
-scenarios('../features/virtual_machine.feature')
+scenarios("../features/pod_connectivity.feature")
+scenarios("../features/virtual_machine.feature")
 
 config.load_kube_config()
+
 
 @pytest.fixture(scope="module")
 def project():
@@ -23,9 +24,11 @@ def project():
     project_request.create()
     return project_name
 
-@when('I create a new project')
+
+@when("I create a new project")
 def create_project(project):
     pass
+
 
 @pytest.fixture
 def pod(project):
@@ -42,13 +45,16 @@ def pod(project):
         ],
     )
 
-@when('I create a pod in the project')
+
+@when("I create a pod in the project")
 def create_pod(pod):
     pod.create()
 
-@then('the pod should be running')
+
+@then("the pod should be running")
 def verify_pod_running(pod):
     pod.wait_for_status(status="Running", timeout=30)
+
 
 @pytest.fixture
 def virtual_machine(project):
@@ -63,36 +69,50 @@ def virtual_machine(project):
                     "metadata": {"labels": {"kubevirt.io/domain": vm_name}},
                     "spec": {
                         "domain": {
-                            "devices": {"disks": [{"name": "disk0", "disk": {"bus": "virtio"}}]},
-                            "resources": {"requests": {"memory": "64Mi"}}
+                            "devices": {
+                                "disks": [{"name": "disk0", "disk": {"bus": "virtio"}}]
+                            },
+                            "resources": {"requests": {"memory": "64Mi"}},
                         },
-                        "volumes": [{"name": "disk0", "containerDisk": {"image": "kubevirt/cirros-container-disk-demo"}}]
-                    }
-                }
+                        "volumes": [
+                            {
+                                "name": "disk0",
+                                "containerDisk": {
+                                    "image": "kubevirt/cirros-container-disk-demo"
+                                },
+                            }
+                        ],
+                    },
+                },
             }
-        }
+        },
     )
     return vm
 
-@when('I create a new VirtualMachine')
+
+@when("I create a new VirtualMachine")
 def create_virtual_machine(virtual_machine):
     virtual_machine.create()
 
-@when('I start the VirtualMachine')
+
+@when("I start the VirtualMachine")
 def start_virtual_machine(virtual_machine):
     virtual_machine.start()
 
-@then('the VirtualMachine should be running')
+
+@then("the VirtualMachine should be running")
 def verify_virtual_machine_running(virtual_machine):
     virtual_machine.vmi.wait_until_running(timeout=180)
 
-@then('it should be possible to connect using console')
+
+@then("it should be possible to connect using console")
 def verify_virtual_machine_console(virtual_machine):
     with Console(vm=virtual_machine) as vmc:
-        vmc.sendline('hostname')
-        vmc.expect('cirros')
+        vmc.sendline("hostname")
+        vmc.expect("cirros")
 
-@given('Two VirtualMachines connected to the Pod network', target_fixture="vms")
+
+@given("Two VirtualMachines connected to the Pod network", target_fixture="vms")
 def given_vms(project):
     body = {
         "spec": {
@@ -107,9 +127,16 @@ def given_vms(project):
                         "resources": {"requests": {"memory": "64Mi"}},
                     },
                     "networks": [{"name": "default", "pod": {}}],
-                    "volumes": [{"name": "disk0", "containerDisk": {"image": "kubevirt/cirros-container-disk-demo"}}]
+                    "volumes": [
+                        {
+                            "name": "disk0",
+                            "containerDisk": {
+                                "image": "kubevirt/cirros-container-disk-demo"
+                            },
+                        }
+                    ],
                 }
-            }
+            },
         }
     }
     vm_a = VirtualMachine(
@@ -128,7 +155,8 @@ def given_vms(project):
     vm_b.vmi.wait_until_running(timeout=180)
     return vm_a, vm_b
 
-@then('there must be connectivity between the two')
+
+@then("there must be connectivity between the two")
 def verify_no_packet_loss(vms):
     vm_a, vm_b = vms
 
@@ -138,6 +166,7 @@ def verify_no_packet_loss(vms):
     with Console(vm=vm_a) as vm_a_console:
         vm_a_console.sendline(f"ping -c 10 {vm_b_ip}")
         vm_a_console.expect("0% packet loss")
+
 
 class Console(object):
     def __init__(self, vm):
@@ -153,7 +182,9 @@ class Console(object):
 
     def connect(self):
         LOGGER.info(f"Connect to {self.vm.name} console")
-        self.console_eof_sampler(func=pexpect.spawn, command=self.cmd, timeout=self.timeout)
+        self.console_eof_sampler(
+            func=pexpect.spawn, command=self.cmd, timeout=self.timeout
+        )
 
         self._connect()
 
@@ -162,7 +193,7 @@ class Console(object):
     def _connect(self):
         self.child.send("\n\n")
         if self.username:
-            self.child.expect(self.login_prompt, timeout=5*60)
+            self.child.expect(self.login_prompt, timeout=5 * 60)
             LOGGER.info(f"{self.vm.name}: Using username {self.username}")
             self.child.sendline(self.username)
             if self.password:
@@ -175,7 +206,9 @@ class Console(object):
 
     def disconnect(self):
         if self.child.terminated:
-            self.console_eof_sampler(func=pexpect.spawn, command=self.cmd, timeout=self.timeout)
+            self.console_eof_sampler(
+                func=pexpect.spawn, command=self.cmd, timeout=self.timeout
+            )
 
         self.child.send("\n\n")
         self.child.expect(self.prompt)
@@ -187,7 +220,7 @@ class Console(object):
 
     def console_eof_sampler(self, func, command, timeout):
         sampler = TimeoutSampler(
-            wait_timeout=5*60,
+            wait_timeout=5 * 60,
             sleep=5,
             func=func,
             exceptions_dict={pexpect.exceptions.EOF: []},
@@ -198,7 +231,9 @@ class Console(object):
         for sample in sampler:
             if sample:
                 self.child = sample
-                self.child.logfile = open(f"{self.base_dir}/{self.vm.name}.pexpect.log", "a")
+                self.child.logfile = open(
+                    f"{self.base_dir}/{self.vm.name}.pexpect.log", "a"
+                )
                 break
 
     def _generate_cmd(self):
