@@ -17,9 +17,9 @@ This project contains a test suite using `pytest-bdd` for behavior-driven develo
    podman build -t turnip-test-suite .
    ```
 
-2. Run the test suite:
+2. Run the test suite with a kubeconfig:
    ```bash
-   podman run --rm -it turnip-test-suite
+   podman run --rm -it -v /path/to/kubeconfig:/root/.kube/config:ro -e KUBECONFIG=/root/.kube/config turnip-test-suite
    ```
 
 ### Without Containers
@@ -29,9 +29,9 @@ This project contains a test suite using `pytest-bdd` for behavior-driven develo
    pip install -r requirements.txt
    ```
 
-2. Run the tests:
+2. Run the tests with a kubeconfig:
    ```bash
-   pytest tests
+   KUBECONFIG=/path/to/kubeconfig pytest tests
    ```
 
 ## Requirements
