@@ -16,4 +16,4 @@ RUN apt update && \
 COPY . .
 
 # Default command to run tests
-CMD ["pytest", "-v", "--gherkin-terminal-reporter", "tests"]
+ENTRYPOINT ["pytest", "-v", "--gherkin-terminal-reporter"]

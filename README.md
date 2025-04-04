@@ -22,6 +22,8 @@ This project contains a test suite using `pytest-bdd` for behavior-driven develo
    podman run --rm -it -v ~/.kube/config:/root/.kube/config:z -e KUBECONFIG=/root/.kube/config test-suite
    ```
 
+   Add `-k <test_name>` to select a subset of tests.
+
 ## Requirements
 
 - Podman
