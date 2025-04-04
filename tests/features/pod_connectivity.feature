@@ -1,4 +1,4 @@
-Feature: OpenShift API Connectivity
+Feature: Pod connectivity
 
   Scenario: Create a project and a pod in OpenShift
     Given an OpenShift cluster is accessible
